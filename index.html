@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Absensi dan Nilai PJOK - MSR</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#DC2626"/>
+    <link rel="apple-touch-icon" href="icon-192x192.png">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+        body { 
+            font-family: 'Poppins', sans-serif; 
+            background-color: #f0f2f5;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Cg fill='%23d4d4d8' fill-opacity='0.2'%3E%3Cpath fill-rule='evenodd' d='M11 0l5 20H6l5-20zm42 31a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM0 72h40v4H0v-4zm79-22a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-23-11a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM11 40l5 20H6l5-20z M40 72h40v4H40v-4z M56 31a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M79 8a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM56 2a2 2 0 1 0 0-4 2 2 0 0 0 0 4z'/%3E%3C/g%3E%3C/svg%3E");
+        }
+        .card { transition: transform 0.2s ease, box-shadow 0.2s ease; border-left-width: 5px; }
+        .card:hover { transform: translateY(-4px); box-shadow: 0 10px 20px rgba(0,0,0,0.08); }
+        .card-hadir { border-left-color: #10B981; }
+        .card-sakit { border-left-color: #F59E0B; }
+        .card-izin { border-left-color: #3B82F6; }
+        .card-alpha { border-left-color: #EF4444; }
+        .card-neutral { border-left-color: #D1D5DB; }
+        .status-btn.active { box-shadow: inset 0 2px 4px rgba(0,0,0,0.4); transform: scale(0.95); }
+        .loader { border-top-color: #6D28D9; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="antialiased">
+    <div class="container mx-auto p-4 md:p-8 max-w-7xl">
+
+        <header class="bg-white rounded-2xl shadow-lg p-6 mb-8">
+            <div class="flex flex-col md:flex-row justify-between items-center border-b-2 border-gray-100 pb-4 mb-4">
+                <div class="flex items-center gap-4">
+                    <div class="flex-shrink-0 bg-red-600 text-white font-bold text-2xl w-16 h-16 rounded-lg flex items-center justify-center shadow-md">
+                        MSR
+                    </div>
+                    <div>
+                        <h1 class="text-xl md:text-3xl font-bold text-slate-800">Absensi dan Nilai PJOK</h1>
+                        <p class="text-sm text-slate-500">Telkom School</p>
+                    </div>
+                </div>
+                <div class="text-sm text-slate-500 font-medium mt-4 md:mt-0" id="datetime-display"></div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                 <div>
+                    <label for="materiPelajaran" class="block text-sm font-medium text-slate-600">Materi yang Dibawakan</label>
+                    <input type="text" id="materiPelajaran" placeholder="Contoh: Latihan Kebugaran Jasmani" class="mt-1 block w-full py-2 px-3 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500">
+                </div>
+                <div>
+                    <label for="documentationUpload" class="block text-sm font-medium text-slate-600">Dokumentasi Kegiatan (Foto)</label>
+                    <input type="file" id="documentationUpload" multiple accept="image/*" class="mt-1 block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100">
+                </div>
+            </div>
+            <div id="thumbnails" class="flex flex-wrap gap-4 mb-6"></div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 pt-4 border-t-2 border-gray-100">
+                <div>
+                    <label for="classFilter" class="block text-sm font-medium text-slate-600">Filter Kelas</label>
+                    <select id="classFilter" class="mt-1 block w-full py-2 px-3 border border-slate-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"></select>
+                </div>
+                <div>
+                    <label for="searchBox" class="block text-sm font-medium text-slate-600">Cari Siswa</label>
+                    <input type="text" id="searchBox" placeholder="Ketik nama siswa..." class="mt-1 block w-full py-2 px-3 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
+                <div class="bg-green-100 p-3 rounded-lg"><p class="text-sm text-green-800">Hadir</p><p id="summary-hadir" class="text-2xl font-bold text-green-600">0</p></div>
+                <div class="bg-yellow-100 p-3 rounded-lg"><p class="text-sm text-yellow-800">Sakit</p><p id="summary-sakit" class="text-2xl font-bold text-yellow-600">0</p></div>
+                <div class="bg-blue-100 p-3 rounded-lg"><p class="text-sm text-blue-800">Izin</p><p id="summary-izin" class="text-2xl font-bold text-blue-600">0</p></div>
+                <div class="bg-red-100 p-3 rounded-lg"><p class="text-sm text-red-800">Alpha</p><p id="summary-alpha" class="text-2xl font-bold text-red-600">0</p></div>
+                <div class="bg-purple-100 p-3 rounded-lg col-span-2 md:col-span-1"><p class="text-sm text-purple-800">Rata-rata Nilai</p><p id="summary-avg-grade" class="text-2xl font-bold text-purple-600">0</p></div>
+            </div>
+        </header>
+
+        <div id="studentsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+
+        <footer class="mt-8 flex flex-col items-center gap-6">
+            <div class="flex flex-col sm:flex-row justify-center items-center gap-4 w-full">
+                <button onclick="submitData()" class="w-full sm:w-auto bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg transition-transform transform hover:scale-105 flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.428A1 1 0 0010 16h1a1 1 0 00.725-.317l5-7a1 1 0 000-1.368l-7-5a1 1 0 00-.831-.27z" /></svg>
+                    <span>Simpan & Kirim Sesi</span>
+                </button>
+                <button onclick="markAllPresent()" class="w-full sm:w-auto bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-transform transform hover:scale-105">Hadir Semua</button>
+                <button onclick="resetForm()" class="w-full sm:w-auto bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-transform transform hover:scale-105">Reset Sesi Ini</button>
+            </div>
+            
+            <div class="w-full p-6 bg-white rounded-2xl shadow-lg mt-4">
+                <h3 class="text-lg font-bold text-slate-700 mb-4 text-center">Laporan & Riwayat</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                    <div>
+                        <p class="font-medium text-slate-600 mb-2">Download Laporan Sesi Ini:</p>
+                        <div class="flex flex-col sm:flex-row gap-2">
+                            <button onclick="downloadCurrent('pdf')" class="flex-1 bg-red-700 hover:bg-red-800 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center gap-2">PDF</button>
+                            <button onclick="downloadCurrent('excel')" class="flex-1 bg-green-700 hover:bg-green-800 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center gap-2">Excel</button>
+                            <button onclick="downloadCurrent('csv')" class="flex-1 bg-blue-700 hover:bg-blue-800 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center gap-2">CSV</button>
+                        </div>
+                    </div>
+                    <div class="border-t-2 md:border-t-0 md:border-l-2 border-slate-200 pt-4 md:pt-0 md:pl-6">
+                         <label for="historicalReportDate" class="block font-medium text-slate-600 mb-2">Download Laporan Historis:</label>
+                        <div class="flex flex-col sm:flex-row gap-2">
+                           <select id="historicalReportDate" class="flex-grow mt-0 block w-full py-2 px-3 border border-slate-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"></select>
+                        </div>
+                         <div class="flex flex-col sm:flex-row gap-2 mt-2">
+                           <button onclick="downloadHistorical('pdf')" class="flex-1 bg-red-700/80 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center gap-2">PDF</button>
+                           <button onclick="downloadHistorical('excel')" class="flex-1 bg-green-700/80 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center gap-2">Excel</button>
+                           <button onclick="downloadHistorical('csv')" class="flex-1 bg-blue-700/80 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center gap-2">CSV</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <div id="loadingOverlay" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="loader h-12 w-12 rounded-full border-4 border-solid"></div>
+    </div>
+
+    <script>
+        // Seluruh kode JavaScript dari sebelumnya ada di sini, tidak perlu diubah...
+        const APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw0kHBCluvR_BEq0Y4N38VJRp8tySYWM4aTgIWQEYzqpBcCG80E8L4NnbxfZ5PoMUZoiA/exec';
+        const students = [
+            { name: "A. Zerina Khaliqa Rafanda U.", class: "Kelas 3A" }, { name: "Abqari Sharkan Putra Junaedi", class: "Kelas 3A" }, { name: "Adeeva Syavina Keisha Sahrir", class: "Kelas 3A" }, { name: "Aisyah Shafeera Azzahra", class: "Kelas 3A" }, { name: "Alesha Queenara Marissa", class: "Kelas 3A" }, { name: "Alfath Faudzan Ardiansyah", class: "Kelas 3A" }, { name: "Althaf Ghazi Mappangara", class: "Kelas 3A" }, { name: "Ameera Alfathunissa", class: "Kelas 3A" }, { name: "Andi Halil Al Mubarak", class: "Kelas 3A" }, { name: "Andi Mikhaila Almira", class: "Kelas 3A" }, { name: "Assyfa Putri Nazeerah Fadjrin", class: "Kelas 3A" }, { name: "Azalea Ayunda Shaldy", class: "Kelas 3A" }, { name: "Azka Abid Raffasya", class: "Kelas 3A" }, { name: "Ida Ayu Permata Diandra", class: "Kelas 3A" }, { name: "I Wayan Avatara Krishin Yeandra", class: "Kelas 3A" }, { name: "Kaisah Azzahra Zulfiany", class: "Kelas 3A" }, { name: "Meisya Anaya Aprhianto", class: "Kelas 3A" }, { name: "Mochammad Jusuf Islami Isman", class: "Kelas 3A" }, { name: "Muh. Aditya Al-Ghifari R.", class: "Kelas 3A" }, { name: "Muh. Arez Razzaq", class: "Kelas 3A" }, { name: "Muh. Khalif Zikri Al Imran", class: "Kelas 3A" }, { name: "Muhammad Rafif Abqari", class: "Kelas 3A" }, { name: "Mutiah Kharimah", class: "Kelas 3A" }, { name: "Najjua Nur Aulia", class: "Kelas 3A" }, { name: "Qudwatul Arifah Imaduddin", class: "Kelas 3A" }, { name: "Queeneta Alula Ramadhani", class: "Kelas 3A" }, { name: "Raffi Alghifari Ichwan", class: "Kelas 3A" }, { name: "Raif Ahmad Rifai", class: "Kelas 3A" }, { name: "Shakira Ayudia Inara Ryan", class: "Kelas 3A" }, { name: "Nayla Azzahra Reskhy Mardi", class: "Kelas 3A" },
+            { name: "A. Muhammad Rafisqy Dhavistya", class: "Kelas 3B" }, { name: "A. Gusti Eza Aljurida", class: "Kelas 3B" }, { name: "Aaron Ishaan Hafizh Herman", class: "Kelas 3B" }, { name: "Achmad Al Ghazali Ramaswara Mulki", class: "Kelas 3B" }, { name: "Adeeva Aurelia Mumtazah", class: "Kelas 3B" }, { name: "Akasya Arsyila Al Farid", class: "Kelas 3B" }, { name: "Aleena Ayudhita Arsyad", class: "Kelas 3B" }, { name: "Alya Almeera Prayoga", class: "Kelas 3B" }, { name: "Ananda Nur Adibah Irwan", class: "Kelas 3B" }, { name: "Andi Inara Calya Audinanda", class: "Kelas 3B" }, { name: "Andi Zea Almeera", class: "Kelas 3B" }, { name: "Arvie Algazali Putra Ferdi", class: "Kelas 3B" }, { name: "Averyl Shaqueena Putri Sabban", class: "Kelas 3B" }, { name: "Azalea Khaliqa Dzahin SR.", class: "Kelas 3B" }, { name: "Azka Rajendra Taufiq", class: "Kelas 3B" }, { name: "Farrah Ramadhani IR.", class: "Kelas 3B" }, { name: "Jonathan Gosal", class: "Kelas 3B" }, { name: "Mackenzo Gauzan Elfarrukh Extrada", class: "Kelas 3B" }, { name: "Mishall Azkadina Syarif", class: "Kelas 3B" }, { name: "Muhammad Anas Malik", class: "Kelas 3B" }, { name: "Muhammad Arzan Rafindra Idham", class: "Kelas 3B" }, { name: "Muhammad Farel Al Farezi", class: "Kelas 3B" }, { name: "Mush'ab Faris Harun", class: "Kelas 3B" }, { name: "Nadia Mina Qurrotaayun", class: "Kelas 3B" }, { name: "Nizar Attaya Aidid", class: "Kelas 3B" }, { name: "Raisa Syaqila Meditri", class: "Kelas 3B" }, { name: "Salwa Khaliqa Dzahin", class: "Kelas 3B" }, { name: "Savina Anindra Shanum", class: "Kelas 3B" }, { name: "Tasha Latifa Pertiwi", class: "Kelas 3B" }, { name: "Zoya Alesha Herhav", class: "Kelas 3B" },
+            { name: "Abrisam Khalif Putra Adam", class: "Kelas 3C" }, { name: "Alinka Ayanna Sofia Adinatha", class: "Kelas 3C" }, { name: "Almira Adeeva M. Nur", class: "Kelas 3C" }, { name: "Andi Asraf Arsenio Darwan", class: "Kelas 3C" }, { name: "Andi Mihran Erdogan", class: "Kelas 3C" }, { name: "Annarisa Raymedina", class: "Kelas 3C" }, { name: "Ar Rafif Achmad Widyadhana", class: "Kelas 3C" }, { name: "Asyifa Salsabila Khaerul", class: "Kelas 3C" }, { name: "Dyah Kirana Ramadhani", class: "Kelas 3C" }, { name: "Gaia Ghania Bainea", class: "Kelas 3C" }, { name: "Khanza Permata Noer", class: "Kelas 3C" }, { name: "Maharajendra Aydan Anzar", class: "Kelas 3C" }, { name: "Malihah Fariza Ferial", class: "Kelas 3C" }, { name: "Maryam Zahra Puspita", class: "Kelas 3C" }, { name: "Muh. Athaqa Rafaeyza Zabrie", class: "Kelas 3C" }, { name: "Muh. Heikal Agussalim", class: "Kelas 3C" }, { name: "Muhammad Azzam Suryadi", class: "Kelas 3C" }, { name: "Muhammad Fahd", class: "Kelas 3C" }, { name: "Olivia Lara Kirana", class: "Kelas 3C" }, { name: "Rania Khumairah Maulana", class: "Kelas 3C" }, { name: "Raykinaan Hibrizi Inhata", class: "Kelas 3C" }, { name: "Sabiyla Haqqiyah Rahim", class: "Kelas 3C" }, { name: "Sophia Alfatih Ivana Irawanto", class: "Kelas 3C" }, { name: "Yuji Abimanyu Syalendra Putra Sezar", class: "Kelas 3C" }, { name: "Zafran Khairul Azzam", class: "Kelas 3C" }, { name: "Andi Almahira Mishal Medina", class: "Kelas 3C" }, { name: "Keysha Amelia Manaf", class: "Kelas 3C" }, { name: "Muhammad Ar Raihan", class: "Kelas 3C" }, { name: "Aulia Alexa Primantantri", class: "Kelas 3C" }, { name: "Abimanyu Satria Yudhananta", class: "Kelas 3C" },
+            { name: "Adeeva Soraya Rohani Irwan", class: "Kelas 3D" }, { name: "A. Varisha Ratu Khairah", class: "Kelas 3D" }, { name: "Ainun Nabila Nur Maulida", class: "Kelas 3D" }, { name: "Andi Almeyra Rachel Azzahra", class: "Kelas 3D" }, { name: "Andi Arumi Izzah Ghinayah Azis", class: "Kelas 3D" }, { name: "Andi Dea Fadhillah Azurea Putri", class: "Kelas 3D" }, { name: "Assyifa Jasmine Khumayra", class: "Kelas 3D" }, { name: "Ataqa Khairrazky Malik", class: "Kelas 3D" }, { name: "Aura Ramadhani Taufik", class: "Kelas 3D" }, { name: "Danish Radhika Baskara", class: "Kelas 3D" }, { name: "Faiz Kenzie Hamizan", class: "Kelas 3D" }, { name: "Falisha Rakhmatika Kurniawan", class: "Kelas 3D" }, { name: "Faruq Faiz Ayyub", class: "Kelas 3D" }, { name: "Fazia Malayeka Azzahra Achmad", class: "Kelas 3D" }, { name: "Ghania Shafana Syahira", class: "Kelas 3D" }, { name: "Ken Ayu Dwi Maharani", class: "Kelas 3D" }, { name: "Kenzou Grossler", class: "Kelas 3D" }, { name: "Laksamana Punggawa Ogi", class: "Kelas 3D" }, { name: "Moh. Abizard Faraz Raufa", class: "Kelas 3D" }, { name: "Muhammad Farhan", class: "Kelas 3D" }, { name: "Muhammad Risyad Achmad", class: "Kelas 3D" }, { name: "Nafla Syaurah Andary Adiwinata", class: "Kelas 3D" }, { name: "Narendra Ayatullah Candradimuka", class: "Kelas 3D" }, { name: "Raissa Ariena Rusli", class: "Kelas 3D" }, { name: "Ralinka Aishaluna Martanto", class: "Kelas 3D" }, { name: "Salwa Nur Qirani Arief", class: "Kelas 3D" }, { name: "Shaquille Arkaan Alip Putra", class: "Kelas 3D" }, { name: "Zalika Ayudia Risal", class: "Kelas 3D" }, { name: "Shanum Nur Azkadina", class: "Kelas 3D" },
+            { name: "Abrisam Rifat Al Rassya", class: "Kelas 4A" }, { name: "Adly Vahrezy Adhita", class: "Kelas 4A" }, { name: "Ahmad Afa Athaillah", class: "Kelas 4A" }, { name: "Ahmad Zaki", class: "Kelas 4A" }, { name: "Ainiyah Azqiara Muchriady", class: "Kelas 4A" }, { name: "Alhusayn Razqa Pramono", class: "Kelas 4A" }, { name: "Andi Adelard Zein Ramadhan F.", class: "Kelas 4A" }, { name: "Andi Narendra Mattonrokang", class: "Kelas 4A" }, { name: "Andi Raisa Maulidiyah Afandi", class: "Kelas 4A" }, { name: "Arsya Ilman Ramadhan", class: "Kelas 4A" }, { name: "Ashila Imtinan Mubarak", class: "Kelas 4A" }, { name: "Fahreza Nathan Athalla Kuncung", class: "Kelas 4A" }, { name: "Fathiyah Salvina", class: "Kelas 4A" }, { name: "Khansa Naisyaturrahma Mustagfir", class: "Kelas 4A" }, { name: "Insyirah Alila Muhajirin", class: "Kelas 4A" }, { name: "Medina Nurazkia", class: "Kelas 4A" }, { name: "Muh Fatharian Hamizan M", class: "Kelas 4A" }, { name: "Muhammad Ammar Natsir", class: "Kelas 4A" }, { name: "Muhammad Arka Ramadhan", class: "Kelas 4A" }, { name: "Muhammad Arsakha Al Khalifi", class: "Kelas 4A" }, { name: "Muhammad Ghaisan Ghinan Juhamran", class: "Kelas 4A" }, { name: "Nadhira Shidqia Khairani Taufiq", class: "Kelas 4A" }, { name: "Naysa Aurelia Khanza", class: "Kelas 4A" }, { name: "Omar Zayn Ghifari Nurman", class: "Kelas 4A" }, { name: "Queensha Narashya Afsheera", class: "Kelas 4A" }, { name: "Rafi Prasaja Salam", class: "Kelas 4A" }, { name: "Raisya Almira Putri Ichwan", class: "Kelas 4A" }, { name: "Rasya Dwi Falisha S.", class: "Kelas 4A" }, { name: "Safaraz Salvino Hendra Sani", class: "Kelas 4A" }, { name: "Shergi Qidzama Udfal", class: "Kelas 4A" }, { name: "Syarifa Nadia Maulida", class: "Kelas 4A" }, { name: "Umbasan Arsya Arika", class: "Kelas 4A" },
+            { name: "A. Dirgham Rafif Al Hadziq", class: "Kelas 4B" }, { name: "Adzriel Alfarezqi Kenzo Syachputra Gunawan", class: "Kelas 4B" }, { name: "Agasha Rafi Arindra", class: "Kelas 4B" }, { name: "Ahmad Dzaki Maulana", class: "Kelas 4B" }, { name: "Alya Renata Jasmine", class: "Kelas 4B" }, { name: "Amira Widyadhari", class: "Kelas 4B" }, { name: "Andi Ahmad Azam Faturrahman", class: "Kelas 4B" }, { name: "Andi Muhammad Azzamy zayan", class: "Kelas 4B" }, { name: "Arrayyan Dzikri Dahlan", class: "Kelas 4B" }, { name: "Arsyila Sofie Latisha", class: "Kelas 4B" }, { name: "AthalariQ Raynand Abyansyah", class: "Kelas 4B" }, { name: "Bagas Rambu Rabbani", class: "Kelas 4B" }, { name: "Eiryn Yusyukha", class: "Kelas 4B" }, { name: "Hafizah Sheza Aulia", class: "Kelas 4B" }, { name: "Hagia Sophia Suarsy", class: "Kelas 4B" }, { name: "Mayra Arsyifaa Ilham", class: "Kelas 4B" }, { name: "Meyasha Adzkia Putri", class: "Kelas 4B" }, { name: "Muh Al Kahfi Vumater", class: "Kelas 4B" }, { name: "Muh. Rafardhan Athalla", class: "Kelas 4B" }, { name: "Muhammad Dzaky Ar Rafiq Mulyadi", class: "Kelas 4B" }, { name: "Muhammad Jibran Aslam", class: "Kelas 4B" }, { name: "Namiah Nur Asilah", class: "Kelas 4B" }, { name: "Nur Assyifa Aryesti HR", class: "Kelas 4B" }, { name: "Qiano Maliq Adam", class: "Kelas 4B" }, { name: "Radhien Raqila Rahman", class: "Kelas 4B" }, { name: "Rafandra Abqari Atmanegara", class: "Kelas 4B" }, { name: "Rayhan Ramadan Revin", class: "Kelas 4B" }, { name: "Shafiqa Alesha Ardianto", class: "Kelas 4B" }, { name: "Zanya Fikria Aisy Nugroho", class: "Kelas 4B" }, { name: "Amira Saniyyah Kader", class: "Kelas 4B" }, { name: "Muhammad Raffa Alfarizqi Simamora", class: "Kelas 4B" },
+            { name: "A. Abid Putra Alita", class: "Kelas 4C" }, { name: "Abidzar Dirya Putra Maulana", class: "Kelas 4C" }, { name: "Adeeva Ananda Putri", class: "Kelas 4C" }, { name: "Afdhal Al Aydin", class: "Kelas 4C" }, { name: "Agra Mahardika Utomo", class: "Kelas 4C" }, { name: "Ahmad Arrayyan Yuzardi", class: "Kelas 4C" }, { name: "Aisyah Zaleeka Ahmad", class: "Kelas 4C" }, { name: "Alesha Varisha Mecca", class: "Kelas 4C" }, { name: "Alfatih Ramdhani Cahyadi", class: "Kelas 4C" }, { name: "Ameera Rafania Zharifa", class: "Kelas 4C" }, { name: "Andi Azyahra Ayra Jufrial", class: "Kelas 4C" }, { name: "Andi Gerhant Izwar", class: "Kelas 4C" }, { name: "Aninda Nadhiyatul Khumairah", class: "Kelas 4C" }, { name: "Audia Kirana Ramadhani Arna", class: "Kelas 4C" }, { name: "Fahreza Wiratama Sakti", class: "Kelas 4C" }, { name: "Fayyola Ailani Faisal", class: "Kelas 4C" }, { name: "Ibnu Rasyid Ismail", class: "Kelas 4C" }, { name: "Jaden Ahmad Suardy", class: "Kelas 4C" }, { name: "Karaeng Dato Pasewang", class: "Kelas 4C" }, { name: "Khanza Muliati Muhliza Putri", class: "Kelas 4C" }, { name: "Mikhaela J Tenritatta", class: "Kelas 4C" }, { name: "Muh Zayn Amirul Hamid", class: "Kelas 4C" }, { name: "Muh. Nizam Alfarizqy", class: "Kelas 4C" }, { name: "Muhammad Abdullah As Syakran", class: "Kelas 4C" }, { name: "Muhammad Kaisar Fathu Aryando Sulyadi S", class: "Kelas 4C" }, { name: "Muhammad Zafran Rinal Saputra", class: "Kelas 4C" }, { name: "Nazila Mysha Hikari", class: "Kelas 4C" }, { name: "Raihanun Chairani", class: "Kelas 4C" }, { name: "M. Raffi Alfarizqy", class: "Kelas 4C" }, { name: "M. Dirga Mahardika Takdir", class: "Kelas 4C" }, { name: "Anindyta Az Zahrah Kasmad", class: "Kelas 4C" }, { name: "Eiliyah Fatimah Ryiandi", class: "Kelas 4C" },
+            { name: "Abraham Khalifah Anshar", class: "Kelas 4D" }, { name: "Abu Zhafran Mikail Alief", class: "Kelas 4D" }, { name: "Achmad Aidan Alfarisy", class: "Kelas 4D" }, { name: "Ahmad Wafiy Haerul", class: "Kelas 4D" }, { name: "Albifardzan Ali", class: "Kelas 4D" }, { name: "Alkhalifi Zikri Hamizan", class: "Kelas 4D" }, { name: "Andi Ahza Rajendra Wahyudi", class: "Kelas 4D" }, { name: "Andi Angkasa Artfi Antasyim", class: "Kelas 4D" }, { name: "Andi Muhammad Arkha Alfarizky", class: "Kelas 4D" }, { name: "Andi Zalika Kaysa Rafani U.", class: "Kelas 4D" }, { name: "Arpuanytri Nurrahmadina Anirwan", class: "Kelas 4D" }, { name: "Arsyad Hafiz Ramadhan", class: "Kelas 4D" }, { name: "Asyraful Anaam", class: "Kelas 4D" }, { name: "Aura Magrifah Ramadhani Sirian", class: "Kelas 4D" }, { name: "Aysha Azzahra RF.", class: "Kelas 4D" }, { name: "Efka Muhammad Afandi", class: "Kelas 4D" }, { name: "Giza Aulia Nurwati Firdhana", class: "Kelas 4D" }, { name: "M. Daffa Alkalifi Faizal", class: "Kelas 4D" }, { name: "Muhammad Al Kahfi Putra Anwary", class: "Kelas 4D" }, { name: "Muhammad Ammar Ghaidaan Lucky", class: "Kelas 4D" }, { name: "Muhammad Fatir Mansyur", class: "Kelas 4D" }, { name: "Muhammad Ghaisan Sevimli", class: "Kelas 4D" }, { name: "Muhammad Naufal Rizki Ar Rafif", class: "Kelas 4D" }, { name: "Nuril Qalbi Ramadhani", class: "Kelas 4D" }, { name: "Nursyifa Khairiyah", class: "Kelas 4D" }, { name: "Raziq Khairi Rafif", class: "Kelas 4D" }, { name: "Risqi Anindya Kadir", class: "Kelas 4D" }, { name: "Taqiyyah Kiandra Maiza", class: "Kelas 4D" }, { name: "Zakha Arkhana E", class: "Kelas 4D" }, { name: "Anindita Keisya Zahra", class: "Kelas 4D" }
+        ];
+        
+        let currentSession = { materi: '', photos: [], studentStates: [] };
+        
+        window.onload = () => {
+            loadCurrentSession();
+            populateClassFilter();
+            populateHistoryDropdown();
+            addEventListeners();
+            renderStudents();
+            updateDateTime();
+            setInterval(updateDateTime, 1000);
+            
+            // Registrasi Service Worker untuk PWA
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('sw.js')
+                .then(reg => console.log('Service Worker registered', reg))
+                .catch(err => console.error('Service Worker registration failed', err));
+            }
+        };
+
+        // ... (seluruh fungsi JavaScript lainnya dari kode sebelumnya diletakkan di sini)
+        function addEventListeners() { /*...*/ }
+        function getTodayDateString() { /*...*/ }
+        function loadCurrentSession() { /*...*/ }
+        function saveCurrentSession() { /*...*/ }
+        // ...dan seterusnya...
+        async function submitData() { /*...*/ }
+    </script>
+</body>
+</html>
